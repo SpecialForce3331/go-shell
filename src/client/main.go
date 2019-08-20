@@ -35,14 +35,6 @@ func InitConnection(requests chan<- string, response <-chan string) {
     log.Fatalln("connection closed!")
 }
 
-func main() {
-    var chan_requests chan string = make(chan string)
-    var chan_response chan string = make(chan string)
-
-    go MakeBash(chan_requests, chan_response)
-    InitConnection(chan_requests, chan_response)
-}
-
 func IOHandler(requests <-chan string, response chan<- string, stdin io.WriteCloser, stdout io.ReadCloser, stderr io.ReadCloser) {
     defer stdin.Close()
     defer stdout.Close()
@@ -98,4 +90,12 @@ func MakeBash(requests <-chan string, response chan<- string) {
         log.Fatalln(err)
     }
     cmd.Wait()
+}
+
+func main() {
+    var chan_requests chan string = make(chan string)
+    var chan_response chan string = make(chan string)
+
+    go MakeBash(chan_requests, chan_response)
+    InitConnection(chan_requests, chan_response)
 }
