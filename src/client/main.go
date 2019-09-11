@@ -2,13 +2,14 @@ package main
 
 import "log"
 import "os/exec"
+import "os"
 import "fmt"
 import "bufio"
 import "net"
 import "io"
 
-func InitConnection(requests chan<- string, response <-chan string) {
-    const server string = "127.0.0.1:9999"
+func InitConnection(serverAddr string, serverPort string, requests chan<- string, response <-chan string) {
+    var server = fmt.Sprintf("%s:%s", serverAddr, serverPort)
     fmt.Println("Connecting to remote server...", server)
     conn, err := net.Dial("tcp", server)
     if err != nil {
@@ -35,14 +36,6 @@ func InitConnection(requests chan<- string, response <-chan string) {
     log.Fatalln("connection closed!")
 }
 
-func main() {
-    var chan_requests chan string = make(chan string)
-    var chan_response chan string = make(chan string)
-
-    go MakeBash(chan_requests, chan_response)
-    InitConnection(chan_requests, chan_response)
-}
-
 func IOHandler(requests <-chan string, response chan<- string, stdin io.WriteCloser, stdout io.ReadCloser, stderr io.ReadCloser) {
     defer stdin.Close()
     defer stdout.Close()
@@ -66,6 +59,11 @@ func IOHandler(requests <-chan string, response chan<- string, stdin io.WriteClo
     for {
         log.Println("Waiting command...")
         req := <-requests
+
+        if ( req == "@stop\n" ) {
+            log.Fatalln("Stop command received, terminating self...")
+        }
+
         log.Println("request accepted...")
         io.WriteString(stdin, req)
         log.Println("new circle")
@@ -98,4 +96,20 @@ func MakeBash(requests <-chan string, response chan<- string) {
         log.Fatalln(err)
     }
     cmd.Wait()
+}
+
+func main() {
+    if len(os.Args) < 3 {
+        log.Fatalln("You must set server ip and port as arguments!")
+    }
+
+    var serverAddr = os.Args[1]
+    var serverPort = os.Args[2]
+
+
+    var chan_requests chan string = make(chan string)
+    var chan_response chan string = make(chan string)
+
+    go MakeBash(chan_requests, chan_response)
+    InitConnection(serverAddr, serverPort, chan_requests, chan_response)
 }
